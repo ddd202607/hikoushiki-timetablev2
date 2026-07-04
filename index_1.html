@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<title>【非公式】フジロック'26 タイムテーブルビューア</title>
+<meta name="description" content="FUJI ROCK FESTIVAL '26（2026年7月24-26日・苗場）のタイムテーブルを見やすく表示する非公式のファンメイドビューア。公式情報は必ずfujirockfestival.comをご確認ください。">
+<style>
+:root{
+  --pine:#14352A; --paper:#FAF8F3; --ink:#22302B; --line:#E2DED4;
+  --green-bg:#E3F2E1; --green-tx:#1E5B28; --green-bd:#5CA463;
+  --white-bg:#EDEDF2; --white-tx:#3A3F52; --white-bd:#9AA0B8;
+  --red-bg:#FBE5E3; --red-tx:#8E2A22; --red-bd:#D97C71;
+  --heaven-bg:#E1EFF7; --heaven-tx:#1D5578; --heaven-bd:#6FA8C9;
+  --garden-bg:#F0EEDC; --garden-tx:#5C5A1E; --garden-bd:#AFAB63;
+  --night-bg:#E9E5F5; --night-tx:#463578; --night-bd:#9384C6;
+  --cxl:#C0392B;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Noto Sans JP','Hiragino Sans',sans-serif;background:var(--paper);color:var(--ink)}
+.bar{display:flex;align-items:center;gap:4px;padding:5px 8px;background:var(--pine);overflow-x:auto}
+.tab{font:inherit;font-size:12.5px;font-weight:500;padding:4px 9px;border-radius:14px;border:1px solid rgba(255,255,255,.35);background:transparent;color:#F2EFE6;cursor:pointer;white-space:nowrap;flex:none}
+.tab.on{background:#F2EFE6;color:var(--pine);border-color:#F2EFE6}
+.zbtn{font:inherit;font-size:14px;font-weight:700;width:28px;height:26px;border-radius:7px;border:1px solid rgba(255,255,255,.35);background:transparent;color:#F2EFE6;cursor:pointer;line-height:1;flex:none}
+.zbtn.wide{width:auto;padding:0 8px;font-size:11.5px;font-weight:500}
+#zval{font-size:10.5px;color:#F2EFE6;opacity:.85;min-width:32px;text-align:center;font-variant-numeric:tabular-nums;flex:none}
+.disc{margin-left:auto;font-size:10px;color:#F2EFE6;opacity:.75;white-space:nowrap;flex:none}
+#scroller{overflow:auto;height:calc(100vh - 37px - 44px);touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch}
+footer{height:44px;padding:5px 10px;font-size:9px;line-height:1.5;color:#6B675B;background:#F1EDE2;border-top:1px solid var(--line);overflow:hidden}
+footer a{color:#14352A}
+.hrow{display:flex;position:sticky;top:0;z-index:5}
+.hcell{flex:none;background:var(--paper);border-bottom:1.5px solid var(--line);border-right:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  font-size:9.5px;font-weight:700;line-height:1.15;padding:0 2px;border-top:3px solid transparent;overflow:hidden}
+.corner{position:sticky;left:0;z-index:6}
+.brow{display:flex}
+.timecol{flex:none;position:sticky;left:0;z-index:4;background:var(--paper);border-right:1px solid var(--line)}
+.timecol span{position:absolute;right:4px;font-size:9.5px;color:#8A8577;font-variant-numeric:tabular-nums}
+.col{flex:none;border-right:1px solid var(--line);position:relative}
+.hline{position:absolute;left:0;right:0;border-top:1px solid #EEEAE0}
+.ev{position:absolute;overflow:hidden;border-radius:4px;border-left:2.5px solid transparent}
+.ev .tm{display:block;font-size:9px;opacity:.8;font-variant-numeric:tabular-nums}
+.ev .nm{display:block;font-weight:700;word-break:break-word;line-height:1.15}
+.ev.cxl .nm{text-decoration:line-through}
+.ev.cxl{outline:1.5px solid var(--cxl)}
+.ev .cb{font-size:8.5px;color:var(--cxl);font-weight:700}
+.ev{cursor:pointer}
+#sheetbg{display:none;position:fixed;inset:0;background:rgba(20,30,26,.45);z-index:50}
+#sheet{display:none;position:fixed;left:0;right:0;bottom:0;z-index:51;background:#FAF8F3;border-radius:16px 16px 0 0;padding:14px 16px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -4px 24px rgba(0,0,0,.25)}
+#sheet h3{margin:0 0 2px;font-size:14px;color:#14352A}
+#sheet .meta{font-size:11px;color:#8A8577;margin-bottom:10px}
+#sheet a{display:flex;align-items:center;gap:8px;padding:11px 12px;margin-bottom:7px;border-radius:10px;text-decoration:none;font-size:13.5px;font-weight:700;border:1px solid var(--line);color:#22302B;background:#fff}
+#sheet a span{font-size:11px;font-weight:400;color:#8A8577;margin-left:auto}
+#sheet .close{width:100%;font:inherit;font-size:12.5px;padding:9px;border:none;border-radius:10px;background:#EEEAE0;color:#5E5A4E;cursor:pointer;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="bar">
+  <button class="tab" data-d="24">24金</button>
+  <button class="tab" data-d="25">25土</button>
+  <button class="tab" data-d="26">26日</button>
+  <button class="zbtn" id="zout" aria-label="縮小">−</button>
+  <span id="zval">100%</span>
+  <button class="zbtn" id="zin" aria-label="拡大">＋</button>
+  <button class="zbtn wide" id="zfit">1日全体</button>
+  <span class="disc">非公式ファンメイド</span>
+</div>
+<div id="scroller"></div>
+<div id="sheetbg"></div>
+<div id="sheet">
+  <h3 id="sh-name"></h3>
+  <div class="meta" id="sh-meta"></div>
+  <a id="lk-am" target="_blank" rel="noopener">&#127925; Apple Musicで検索<span>music.apple.com</span></a>
+  <a id="lk-sp" target="_blank" rel="noopener">&#127911; Spotifyで検索<span>open.spotify.com</span></a>
+  <a id="lk-yt" target="_blank" rel="noopener">&#9654;&#65039; YouTubeで検索<span>youtube.com</span></a>
+  <button class="close" id="sh-close">閉じる</button>
+</div>
+<footer>本サイトはファンが作成した<b>非公式ページ</b>であり、FUJI ROCK FESTIVAL / 主催者とは一切関係ありません。最新・正確な情報は必ず<a href="https://www.fujirockfestival.com/" target="_blank" rel="noopener">公式サイト</a>をご確認ください。掲載情報の誤りによる損害について当サイトは責任を負いません。データ基準日: 2026-07-03</footer>
+<script>
+const T0=480,T1=1740,TW=34,HD=30;
+const STYLE={
+"GREEN STAGE":["--green-bg","--green-tx","--green-bd"],
+"WHITE STAGE":["--white-bg","--white-tx","--white-bd"],
+"RED MARQUEE":["--red-bg","--red-tx","--red-bd"],
+"FIELD OF HEAVEN":["--heaven-bg","--heaven-tx","--heaven-bd"],
+"ORANGE ECHO":["--garden-bg","--garden-tx","--garden-bd"],
+"GYPSY AVALON":["--garden-bg","--garden-tx","--garden-bd"],
+"苗場食堂":["--garden-bg","--garden-tx","--garden-bd"],
+"PYRAMID GARDEN":["--garden-bg","--garden-tx","--garden-bd"],
+"CRYSTAL PALACE TENT":["--night-bg","--night-tx","--night-bd"],
+"PALACE ARENA":["--night-bg","--night-tx","--night-bd"],
+"ROOKIE A GO-GO":["--night-bg","--night-tx","--night-bd"],
+"GAN-BAN SQUARE":["--night-bg","--night-tx","--night-bd"],
+"BLUE GALAXY":["--night-bg","--night-tx","--night-bd"]};
+const ORDER=["GREEN STAGE","WHITE STAGE","RED MARQUEE","FIELD OF HEAVEN","ORANGE ECHO","GYPSY AVALON","CRYSTAL PALACE TENT","PALACE ARENA","ROOKIE A GO-GO","苗場食堂","PYRAMID GARDEN","GAN-BAN SQUARE","BLUE GALAXY"];
+const SHORT={"GREEN STAGE":"GREEN","WHITE STAGE":"WHITE","RED MARQUEE":"RED MQ","FIELD OF HEAVEN":"HEAVEN","ORANGE ECHO":"ORANGE","GYPSY AVALON":"AVALON","苗場食堂":"苗場食堂","PYRAMID GARDEN":"PYRAMID","CRYSTAL PALACE TENT":"PALACE","PALACE ARENA":"ARENA","ROOKIE A GO-GO":"ROOKIE","GAN-BAN SQUARE":"GAN-BAN","BLUE GALAXY":"BLUE GX"};
+let DATA={
+"24":{label:"7/24 金",st:{
+"GREEN STAGE":[["11:00","12:00","ROUTE 17 Rock'n'Roll ORCHESTRA"],["13:00","14:00","My Hair is Bad"],["15:00","16:00","LOYLE CARNER"],["17:00","18:00","TURNSTILE"],["19:00","20:10","Hi-STANDARD"],["21:25","22:40","The xx"]],
+"WHITE STAGE":[["11:30","12:20","KOTORI"],["13:00","13:50","SON ROMPE PERA"],["14:40","15:40","Yo-Sea"],["16:40","17:40","TORO Y MOI"],["18:40","19:40","ARLO PARKS"],["20:40","22:10","ASIAN KUNG-FU GENERATION"]],
+"RED MARQUEE":[["11:10","11:50","テレビ大陸音頭"],["12:20","13:10","w.o.d."],["14:00","15:00","SORRY"],["16:00","17:00","TESTSET"],["18:00","19:00","SNAIL MAIL"],["20:10","21:10","HYUKOH"],["23:30","24:20","maya ongaku"],["24:30","26:00","TORO Y MOI (DJ)"],["26:00","27:30","salute"],["27:30","29:00","Wata Igarashi"]],
+"FIELD OF HEAVEN":[["12:10","13:00","CHAPPO"],["13:50","14:50","奇妙礼太郎BAND"],["15:40","16:40","ALTIN GÜN"],["17:40","18:40","OGRE YOU ASSHOLE"],["19:30","20:40","ANTIBALAS"],["21:30","23:00","LETTUCE"]],
+"ORANGE ECHO":[["13:00","13:40","クマイルス"],["14:50","15:30","MIZ"],["16:40","17:20","Mateus Asato"],["18:40","19:20","井上園子"],["20:40","21:20","Black Boboi"]],
+"GYPSY AVALON":[["12:10","13:00","Upendra and friends plus Mr. Sunil"],["13:50","14:40","TAKUTO AND NEKKOYA BAND"],["15:40","16:30","藤田悠也"],["17:40","18:30","almenialva"],["19:40","20:40","BAD TRIP SUMMER (Night Ambient Set)"]],
+"CRYSTAL PALACE TENT":[["22:30","23:45","DJ GONCHAN"],["23:45","24:30","LA LOM"],["24:30","25:30","TXAKO"],["25:30","26:15","BOHEMIAN BETYARS"],["26:15","27:15","CUMBIA KID"],["27:15","28:00","SON ROMPE PERA"],["28:00","29:00","JAPAN CUMBIA FESTIVAL DJs"]],
+"PALACE ARENA":[["24:30","24:45","SAKURA CIRCUS"],["25:30","25:45","SAKURA CIRCUS"],["26:30","26:45","SAKURA CIRCUS"]],
+"ROOKIE A GO-GO":[["23:00","23:30","和泉眞生"],["24:00","24:30","GeGeGe"],["25:00","25:30","Bone Us"],["26:00","26:30","砂の壁"],["27:00","27:30","TIVE"]],
+"苗場食堂":[["11:50","12:30","杉本ラララ"],["13:15","13:55","快速東京"],["15:10","15:50","ENTH"],["17:10","17:50","苗場音楽突撃隊"],["19:10","19:50","TENDOUJI"],["21:10","21:50","SHADOWS"],["22:45","23:25","GOOD4NOTHING"]],
+"PYRAMID GARDEN":[["08:30","09:20","ヨガワークショップ / 渋木さやか"],["09:40","10:40","LOVE FOR NIPPON"],["11:30","12:30","el tempo"],["16:00","18:00","DJ QUIETSTORM"],["18:00","20:00","Kon & y.（Timothy Really）"],["20:00","22:00","CRAZY-T"],["22:30","23:30","君島大空 × 水野蒼生 電氣交響楽団"],["24:20","25:20","Aki"]],
+"GAN-BAN SQUARE":[["23:30","25:00","SUGIURUMN"],["25:00","26:00","Natsuki Fujimoto (Tempalay)"],["26:00","27:30","E.O.U"],["27:30","29:00","youhei (BLACK GANION/UNTTLD)"]],
+"BLUE GALAXY":[["12:30","14:00","DJ JIM"],["14:00","14:50","DJ HANA-G"],["14:50","15:30","Bamboo Boy"],["15:30","16:10","TOYO P"],["16:10","17:00","DJ SCNDLS"],["17:00","17:50","TEKASA"],["17:50","18:40","CUMBIA KID"],["18:40","19:30","RIHO"],["19:30","20:20","RJD"],["20:20","21:10","BABY SOUL"],["21:10","22:00","DOC.KOYAMANTADO"],["22:00","23:00","DJ COLA"],["23:00","24:00","DJ JIM"]]}},
+"25":{label:"7/25 土",st:{
+"GREEN STAGE":[["11:00","12:00","Bialystocks"],["13:00","14:00","Trueno"],["15:00","16:00","IO"],["17:00","18:00","BASEMENT JAXX"],["19:00","20:10","Fujii Kaze"],["21:10","22:40","KHRUANGBIN"]],
+"WHITE STAGE":[["12:10","13:00","Riddim Saunter"],["13:50","14:40","BOHEMIAN BETYARS"],["15:30","16:30","Kroi"],["17:50","18:50","JOEY VALENCE & BRAE"],["19:50","20:50","XG"],["22:00","23:15","TOMORA"]],
+"RED MARQUEE":[["10:20","11:00","ブランデー戦記"],["11:30","12:10","SIX LOUNGE"],["12:40","13:30","QUADECA"],["14:00","15:00","THE BETHS"],["16:00","17:00","cero"],["18:00","19:00","THURSTON MOORE GROUP"],["20:10","21:10","サニーデイ・サービス"],["23:30","24:20","唾奇"],["24:30","26:00","KELLY LEE OWENS (DJ)"],["26:00","27:30","Weval DJ Set"],["27:30","29:00","Soichi Terada"]],
+"FIELD OF HEAVEN":[["11:10","12:00","柴田聡子 (BAND SET)"],["12:50","13:50","YUUF"],["14:40","15:40","LA LOM"],["16:40","17:40","OAU"],["18:30","19:40","KOKOROKO"],["20:30","22:00","BADBADNOTGOOD"]],
+"ORANGE ECHO":[["10:50","11:30","来島エル"],["12:15","12:55","タデクイ"],["13:50","14:30","neco眠る"],["15:40","16:20","CADEJO"],["17:50","18:30","DMBQ"],["19:50","20:30","Bongjeingan"]],
+"GYPSY AVALON":[["11:00","12:00","ケロポンズ"],["13:00","13:50","MASH弦楽団"],["14:40","15:20","アトミック・カフェ トーク【福島事故から15年】"],["16:30","17:20","梅井美咲"],["18:50","19:40","中西レモン＆すずめのティアーズ"],["20:50","21:50","jizue"]],
+"CRYSTAL PALACE TENT":[["22:30","23:45","BABY SOUL"],["23:45","24:30","STOMPIN' RIFFRAFFS"],["24:30","25:30","GAZ MAYALL"],["25:30","26:15","THE KING LION"],["26:15","27:15","KING NABE"],["27:15","28:00","ZIONHILL SESSION"],["28:00","29:00","RUBY FLASHMAN"]],
+"PALACE ARENA":[["24:30","24:45","SAKURA CIRCUS"],["25:30","25:45","SAKURA CIRCUS"],["26:30","26:45","SAKURA CIRCUS"]],
+"ROOKIE A GO-GO":[["22:00","22:30","A_Root同根生"],["23:00","23:30","mayu"],["24:00","24:30","日髙晴野"],["25:00","25:30","Tocago"],["26:00","26:30","猿臂"],["27:00","27:30","二兆円"]],
+"苗場食堂":[["12:10","12:50","Za SAVAGE"],["13:30","14:10","寺久保伶矢"],["15:10","15:50","NONE THE WiSER"],["17:10","17:50","ANIEKY A GO GO ! BAND"],["19:10","19:50","苗場音楽突撃隊"],["21:10","21:50","the Tiger"],["22:45","23:25","HOT DOG EXPRESS"]],
+"PYRAMID GARDEN":[["08:30","09:20","ヨガワークショップ / 渋木さやか"],["09:40","10:40","GOMA"],["11:30","12:30","Michael Kaneko"],["16:30","19:30","YOSHIROTTEN"],["19:30","20:30","AOIZO"],["20:30","22:00","BAKU (KAIKOO)"],["23:00","24:00","ずっと真夜中でいいのに。(スパイシーズ状態)"],["24:50","25:50","SILENT POETS (DUB ENSEMBLE)"]],
+"GAN-BAN SQUARE":[["23:30","24:30","AAAMYYY (Tempalay)"],["24:30","26:00","MONJOE"],["26:00","26:45","O.N.O (THA BLUE HERB)"],["26:45","27:45","MaL a.k.a. Primal Dub"],["27:45","29:00","Lomax (NC4K)"]],
+"BLUE GALAXY":[["12:50","14:00","DJ JIM"],["14:00","14:50","DJ GONCHAN"],["14:50","15:30","NORTH KANTO REBEL SOUND CLASH"],["15:30","16:20","JAPAN CUMBIA FESTIVAL DJs"],["16:20","17:10","FUMINN"],["17:10","18:00","TXAKO"],["18:00","18:50","DJ TOMMY"],["18:50","21:20","CLUB SKA"],["21:20","22:00","SPECIAL GUEST"],["22:00","23:00","RIHO"],["23:00","24:00","DJ JIM"]]}},
+"26":{label:"7/26 日",st:{
+"GREEN STAGE":[["11:00","12:00","平井 大"],["13:00","14:00","DONAVON FRANKENREITER"],["15:00","16:00","KNEECAP"],["17:00","18:00","MOGWAI"],["19:00","20:10","平沢進+会人"],["21:10","22:40","MASSIVE ATTACK"]],
+"WHITE STAGE":[["12:40","13:30","礼賛"],["14:20","15:10","GRAPEVINE"],["16:10","17:10","SOFIA ISELLA"],["18:10","19:10","GEORDIE GREEP"],["20:00","21:00","Tempalay"],["22:10","23:40","MITSKI"]],
+"RED MARQUEE":[["10:20","11:00","Aooo"],["11:30","12:10","ANGINE DE POITRINE"],["12:40","13:30","浅井健一"],["14:00","15:00","THE LEMON TWIGS"],["16:00","17:00","the cabs"],["18:00","19:00","FRIKO"],["20:10","21:10","AMERICAN FOOTBALL"],["23:00","23:45","US"],["23:50","24:35","LAUSBUB"],["24:40","25:40","KIRARA"],["25:45","27:00","ICHIRO YAMAGUCHI (sakanaction)"],["27:00","29:00","TAKKYU ISHINO"]],
+"FIELD OF HEAVEN":[["11:50","12:40","んoon"],["13:20","14:20","TĀL FRY"],["15:10","16:10","PLINI"],["17:10","18:10","THE BREAKS"],["19:00","20:10","GOGO PENGUIN",1],["21:00","22:30","never young beach"]],
+"ORANGE ECHO":[["12:40","13:20","藤原さくら"],["14:20","15:00","岡田拓郎"],["16:10","16:50","Noridogam"],["18:20","19:00","KIKI"],["20:10","20:50","BUFFALO DAUGHTER"]],
+"GYPSY AVALON":[["11:40","12:30","Gingersamm"],["13:30","14:10","アトミック・カフェ 曽我部恵一"],["14:10","14:50","アトミック・カフェ トーク【戦争と平和】"],["15:35","16:20","アトミック・カフェ 忌野清志郎 PEACE SONGS"],["17:20","18:10","スーパー登山部"],["19:10","20:00","こたに"],["21:00","22:00","NakamuraEmi"]],
+"CRYSTAL PALACE TENT":[["22:30","23:45","GEORGE WILLIAMS"],["23:45","24:30","SPECIAL GUEST"],["24:30","25:30","YUSUKE OGAWA"],["25:30","26:15","TĀL FRY"],["26:15","27:15","DAISUKE KURODA"],["27:15","28:00","EXPANSION"],["28:00","29:00","P.O.W ALL STARS"]],
+"PALACE ARENA":[["24:30","24:45","SAKURA CIRCUS"],["25:30","25:45","SAKURA CIRCUS"],["26:30","26:45","SAKURA CIRCUS"]],
+"ROOKIE A GO-GO":[["23:00","23:30","岩崎桃子"],["24:00","24:30","OLDMAN"],["25:00","25:30","SYAYOS"],["26:00","26:30","Wappen"],["27:00","27:30","It's US!!!!"]],
+"苗場食堂":[["12:10","12:50","鬼の右腕"],["13:30","14:10","揺らぎ"],["15:10","15:50","saccharin"],["17:10","17:50","Keishi Tanaka"],["19:10","19:50","苗場音楽突撃隊"],["21:10","21:50","REGA"],["22:45","23:25","xxxx xxx xxxxxxx（シークレット）"]],
+"PYRAMID GARDEN":[["08:30","09:20","ヨガワークショップ / 渋木さやか"],["09:40","10:40","チャラン・ポ・ランタン"],["11:30","12:30","Caravan"],["16:00","19:00","Kadal"],["19:00","22:00","KOTARO"],["22:30","23:30","蓮沼執太チーム"],["24:20","25:20","TENDRE"]],
+"GAN-BAN SQUARE":[["23:30","25:00","TAKU INOUE"],["25:00","28:00","ANTS HOUSE (Nariaki & Nomizo & Rintaro Sekizuka)"]],
+"BLUE GALAXY":[["12:00","13:00","DJ JIM"],["13:00","13:40","田原104洋"],["13:40","14:30","NAOKI IENAGA (DUB STORE RECORDS)"],["14:30","15:10","TIM ROCKINS"],["15:50","16:30","Nozomu"],["16:30","17:10","Can Dream"],["17:10","17:50","Satria Ramadhan"],["17:50","18:30","JAMAiCAN TiME"],["18:30","19:10","RJD"],["19:10","20:00","HANASUBI"],["20:00","20:40","DJ JIM"],["20:40","22:00","Yutaro"],["22:00","23:00","DR. IHARA"],["23:00","24:00","DJ JIM"]]}}};
+let curDay="24";
+let ZOOM=1;
+const ZMIN=0.22,ZMAX=2;
+const mn=s=>{const p=s.split(":");return (+p[0])*60+(+p[1]);};
+const hh=m=>{const h=Math.floor(m/60);return String(h).padStart(2,"0")+":00";};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function metrics(){
+  const sc=Math.max(0.22,ZOOM);
+  const cw=Math.max(56,Math.round(104*ZOOM));
+  const nf=ZOOM>=1?10.5:Math.max(8.5,10.5-(1-ZOOM)*3);
+  return {sc,cw,nf};
+}
+function render(day){
+  curDay=day;
+  const d=DATA[day];
+  const {sc:S,cw:CW,nf:NF}=metrics();
+  const H=(T1-T0)*S;
+  const scEl=document.getElementById("scroller");
+  const oldW=scEl.scrollWidth,oldH=scEl.scrollHeight;
+  const rx=oldW>0?(scEl.scrollLeft+scEl.clientWidth/2)/oldW:0;
+  const ry=oldH>0?(scEl.scrollTop+scEl.clientHeight/2)/oldH:0;
+  scEl.innerHTML="";
+  const inner=document.createElement("div");
+  inner.style.minWidth=(TW+ORDER.length*CW)+"px";
+  const hr=document.createElement("div");hr.className="hrow";
+  const corner=document.createElement("div");corner.className="hcell corner";corner.style.width=TW+"px";corner.style.height=HD+"px";hr.appendChild(corner);
+  ORDER.forEach(name=>{
+    const st=STYLE[name];
+    const c=document.createElement("div");c.className="hcell";
+    c.style.width=CW+"px";c.style.height=HD+"px";
+    c.style.borderTopColor=css(st[2]);c.style.color=css(st[1]);
+    c.textContent=CW<78?SHORT[name]:name;
+    hr.appendChild(c);
+  });
+  inner.appendChild(hr);
+  const hourStep=(60*S<20)?120:60;
+  const br=document.createElement("div");br.className="brow";
+  const tc=document.createElement("div");tc.className="timecol";tc.style.width=TW+"px";tc.style.height=H+"px";
+  const tcin=document.createElement("div");tcin.style.cssText="position:relative;height:"+H+"px;width:100%";
+  for(let m=T0;m<=T1;m+=hourStep){const s=document.createElement("span");s.style.top=((m-T0)*S-6)+"px";s.textContent=hh(m);tcin.appendChild(s);}
+  tc.appendChild(tcin);br.appendChild(tc);
+  ORDER.forEach(name=>{
+    const st=STYLE[name];
+    const col=document.createElement("div");col.className="col";col.style.width=CW+"px";col.style.height=H+"px";
+    for(let m=T0+hourStep;m<T1;m+=hourStep){const ln=document.createElement("div");ln.className="hline";ln.style.top=((m-T0)*S)+"px";col.appendChild(ln);}
+    (d.st[name]||[]).forEach(ev=>{
+      const a=mn(ev[0]),b=mn(ev[1]),top=(a-T0)*S,h=Math.max((b-a)*S,NF*1.15+3);
+      const cxl=ev[3]===1;
+      const showTm=h>=30&&ZOOM>=0.75;
+      const box=document.createElement("div");
+      box.className="ev"+(cxl?" cxl":"");
+      box.style.top=(top+0.5)+"px";box.style.height=(h-1)+"px";
+      box.style.left="1px";box.style.right="1px";
+      box.style.padding=(ZOOM>=0.75?"2px 4px":"0px 2px");
+      box.style.background=css(st[0]);box.style.color=css(st[1]);box.style.borderLeftColor=css(st[2]);
+      box.title=ev[0]+"-"+ev[1]+" "+ev[2]+(cxl?"（出演キャンセル）":"");
+      box.dataset.a=ev[2];box.dataset.s=name;box.dataset.t=ev[0]+"-"+ev[1];
+      if(showTm){const tm=document.createElement("span");tm.className="tm";tm.textContent=ev[0]+"-"+ev[1];box.appendChild(tm);}
+      const nm=document.createElement("span");nm.className="nm";nm.style.fontSize=NF+"px";nm.textContent=ev[2];box.appendChild(nm);
+      if(cxl&&h>=24){const cb=document.createElement("span");cb.className="cb";cb.textContent="キャンセル";box.appendChild(cb);}
+      col.appendChild(box);
+    });
+    br.appendChild(col);
+  });
+  inner.appendChild(br);
+  scEl.appendChild(inner);
+  scEl.scrollLeft=rx*scEl.scrollWidth-scEl.clientWidth/2;
+  scEl.scrollTop=ry*scEl.scrollHeight-scEl.clientHeight/2;
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.d===day));
+  const zv=document.getElementById("zval");
+  if(zv)zv.textContent=Math.round(ZOOM*100)+"%";
+}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>render(b.dataset.d)));
+let renderQueued=false;
+function setZoom(z){
+  ZOOM=Math.min(ZMAX,Math.max(ZMIN,z));
+  if(renderQueued)return;
+  renderQueued=true;
+  requestAnimationFrame(()=>{renderQueued=false;render(curDay);});
+}
+document.getElementById("zin").addEventListener("click",()=>setZoom(ZOOM*1.25));
+document.getElementById("zout").addEventListener("click",()=>setZoom(ZOOM/1.25));
+document.getElementById("zfit").addEventListener("click",()=>{
+  const sc=document.getElementById("scroller");
+  setZoom((sc.clientHeight-HD-4)/(T1-T0));
+});
+(function(){
+  const sc=document.getElementById("scroller");
+  let pinch=null;
+  const GAIN=1.6;
+  const dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+  const mid=t=>({x:(t[0].clientX+t[1].clientX)/2,y:(t[0].clientY+t[1].clientY)/2});
+  sc.addEventListener("touchstart",e=>{
+    if(e.touches.length===2){
+      const inner=sc.firstElementChild;
+      if(!inner)return;
+      const r=sc.getBoundingClientRect();
+      const m=mid(e.touches);
+      pinch={d:dist(e.touches),z:ZOOM,target:ZOOM,inner};
+      inner.style.transformOrigin=(sc.scrollLeft+m.x-r.left)+"px "+(sc.scrollTop+m.y-r.top)+"px";
+      inner.style.willChange="transform";
+    }
+  },{passive:true});
+  sc.addEventListener("touchmove",e=>{
+    if(pinch&&e.touches.length===2){
+      e.preventDefault();
+      const ratio=Math.pow(dist(e.touches)/pinch.d,GAIN);
+      pinch.target=Math.min(ZMAX,Math.max(ZMIN,pinch.z*ratio));
+      pinch.inner.style.transform="scale("+(pinch.target/pinch.z)+")";
+      const zv=document.getElementById("zval");
+      if(zv)zv.textContent=Math.round(pinch.target*100)+"%";
+    }
+  },{passive:false});
+  const end=()=>{
+    if(!pinch)return;
+    const t=pinch.target,z0=pinch.z,inner=pinch.inner;
+    inner.style.transform="";inner.style.willChange="";
+    pinch=null;
+    if(Math.abs(t-z0)>0.001){ZOOM=t;render(curDay);}
+  };
+  sc.addEventListener("touchend",e=>{if(e.touches.length<2)end();});
+  sc.addEventListener("touchcancel",end);
+})();
+(function(){
+  const bg=document.getElementById("sheetbg"),sh=document.getElementById("sheet");
+  const NOLINK=/^(SAKURA CIRCUS|SPECIAL GUEST|xxxx)/i;
+  function cleanName(n){
+    return n.replace(/（[^）]*）|\([^)]*\)|【[^】]*】/g,"").replace(/\s+/g," ").trim();
+  }
+  function open(a,s,t){
+    const q=encodeURIComponent(cleanName(a));
+    document.getElementById("sh-name").textContent=a;
+    document.getElementById("sh-meta").textContent=s+"｜"+t;
+    document.getElementById("lk-am").href="https://music.apple.com/jp/search?term="+q;
+    document.getElementById("lk-sp").href="https://open.spotify.com/search/"+q;
+    document.getElementById("lk-yt").href="https://www.youtube.com/results?search_query="+q;
+    bg.style.display="block";sh.style.display="block";
+  }
+  function close(){bg.style.display="none";sh.style.display="none";}
+  document.getElementById("scroller").addEventListener("click",e=>{
+    const ev=e.target.closest(".ev");
+    if(!ev||!ev.dataset.a)return;
+    if(NOLINK.test(ev.dataset.a))return;
+    open(ev.dataset.a,ev.dataset.s,ev.dataset.t);
+  });
+  bg.addEventListener("click",close);
+  document.getElementById("sh-close").addEventListener("click",close);
+})();
+window.addEventListener("resize",()=>setZoom(ZOOM));
+render("24");
+</script>
+</body>
+</html>
