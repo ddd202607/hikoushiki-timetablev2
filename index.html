@@ -82,6 +82,8 @@ footer a{color:#14352A}
   <a id="lk-am" target="_blank" rel="noopener">&#127925; Apple Musicで検索<span>music.apple.com</span></a>
   <a id="lk-sp" target="_blank" rel="noopener">&#127911; Spotifyで検索<span>open.spotify.com</span></a>
   <a id="lk-yt" target="_blank" rel="noopener">&#9654;&#65039; YouTubeで検索<span>youtube.com</span></a>
+  <a id="lk-sf" target="_blank" rel="noopener">&#128220; 最近のセットリスト（海外・洋楽系）<span>setlist.fm</span></a>
+  <a id="lk-lf" target="_blank" rel="noopener">&#128220; 最近のセットリスト（国内系）<span>livefans.jp</span></a>
   <button class="close" id="sh-close">閉じる</button>
 </div>
 <footer>本サイトはファンが作成した<b>非公式ページ</b>であり、FUJI ROCK FESTIVAL / 主催者とは一切関係ありません。最新・正確な情報は必ず<a href="https://www.fujirockfestival.com/" target="_blank" rel="noopener">公式サイト</a>をご確認ください。掲載情報の誤りによる損害について当サイトは責任を負いません。データ基準日: 2026-07-03</footer>
@@ -334,6 +336,8 @@ document.getElementById("zfit").addEventListener("click",()=>{
     document.getElementById("lk-am").href="https://music.apple.com/jp/search?term="+q;
     document.getElementById("lk-sp").href="https://open.spotify.com/search/"+q;
     document.getElementById("lk-yt").href="https://www.youtube.com/results?search_query="+q;
+    document.getElementById("lk-sf").href="https://www.setlist.fm/search?query="+q;
+    document.getElementById("lk-lf").href="https://www.google.com/search?q="+encodeURIComponent("site:livefans.jp "+cleanName(document.getElementById("sh-name").textContent));
     bg.style.display="block";sh.style.display="block";
   }
   function close(){bg.style.display="none";sh.style.display="none";}
