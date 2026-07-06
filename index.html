@@ -52,6 +52,13 @@ footer a{color:#14352A}
 #sheet a{display:flex;align-items:center;gap:8px;padding:11px 12px;margin-bottom:7px;border-radius:10px;text-decoration:none;font-size:13.5px;font-weight:700;border:1px solid var(--line);color:#22302B;background:#fff}
 #sheet a span{font-size:11px;font-weight:400;color:#8A8577;margin-left:auto}
 #sheet .close{width:100%;font:inherit;font-size:12.5px;padding:9px;border:none;border-radius:10px;background:#EEEAE0;color:#5E5A4E;cursor:pointer;margin-top:2px}
+#sheet .fav{width:100%;font:inherit;display:block;text-align:center;padding:11px 12px;margin-bottom:7px;border-radius:10px;font-size:13.5px;font-weight:700;border:none;background:#E8A33D;color:#3A2604;cursor:pointer}
+#sheet .fav.on{background:#EEEAE0;color:#5E5A4E}
+.ev.sel{outline:2px solid #E8A33D;box-shadow:0 1px 4px rgba(232,163,61,.5)}
+.ev .star{position:absolute;top:1px;right:2px;font-size:9px;color:#C77E12;line-height:1}
+.ev .warn{position:absolute;bottom:1px;right:2px;font-size:9px;line-height:1}
+#mybtn.on{background:#E8A33D;color:#3A2604;border-color:#E8A33D}
+.empty{padding:30px 16px;font-size:13px;color:#8A8577;text-align:center}
 </style>
 </head>
 <body>
@@ -63,6 +70,7 @@ footer a{color:#14352A}
   <span id="zval">100%</span>
   <button class="zbtn" id="zin" aria-label="拡大">＋</button>
   <button class="zbtn wide" id="zfit">1日全体</button>
+  <button class="zbtn wide" id="mybtn">★マイタイテ<span id="mycnt"></span></button>
   <span class="disc">非公式ファンメイド</span>
 </div>
 <div id="scroller"></div>
@@ -70,6 +78,7 @@ footer a{color:#14352A}
 <div id="sheet">
   <h3 id="sh-name"></h3>
   <div class="meta" id="sh-meta"></div>
+  <button class="fav" id="sh-fav">★ マイタイテに追加</button>
   <a id="lk-am" target="_blank" rel="noopener">&#127925; Apple Musicで検索<span>music.apple.com</span></a>
   <a id="lk-sp" target="_blank" rel="noopener">&#127911; Spotifyで検索<span>open.spotify.com</span></a>
   <a id="lk-yt" target="_blank" rel="noopener">&#9654;&#65039; YouTubeで検索<span>youtube.com</span></a>
@@ -139,6 +148,32 @@ let DATA={
 "BLUE GALAXY":[["12:00","13:00","DJ JIM"],["13:00","13:40","田原104洋"],["13:40","14:30","NAOKI IENAGA (DUB STORE RECORDS)"],["14:30","15:10","TIM ROCKINS"],["15:50","16:30","Nozomu"],["16:30","17:10","Can Dream"],["17:10","17:50","Satria Ramadhan"],["17:50","18:30","JAMAiCAN TiME"],["18:30","19:10","RJD"],["19:10","20:00","HANASUBI"],["20:00","20:40","DJ JIM"],["20:40","22:00","Yutaro"],["22:00","23:00","DR. IHARA"],["23:00","24:00","DJ JIM"]]}}};
 let curDay="24";
 let ZOOM=1;
+let MYMODE=false;
+const store={
+  get k(){return "fr26_mytt";},
+  load(){try{return new Set(JSON.parse(localStorage.getItem(this.k)||"[]"));}catch(e){return new Set();}},
+  save(s){try{localStorage.setItem(this.k,JSON.stringify([...s]));}catch(e){}}
+};
+let SEL=store.load();
+const evId=(day,stage,ev)=>day+"|"+stage+"|"+ev[0]+"|"+ev[2];
+function myCount(){const c={"24":0,"25":0,"26":0};SEL.forEach(id=>{const d=id.split("|")[0];if(c[d]!=null)c[d]++;});return c;}
+function updateMyBtn(){
+  const total=SEL.size;
+  document.getElementById("mycnt").textContent=total?" "+total:"";
+  document.getElementById("mybtn").classList.toggle("on",MYMODE);
+}
+function overlapsInDay(day){
+  const evs=[];
+  const d=DATA[day];
+  Object.keys(d.st).forEach(stage=>{(d.st[stage]||[]).forEach(ev=>{
+    if(SEL.has(evId(day,stage,ev)))evs.push({id:evId(day,stage,ev),a:mn(ev[0]),b:mn(ev[1])});
+  });});
+  const bad=new Set();
+  for(let i=0;i<evs.length;i++)for(let j=i+1;j<evs.length;j++){
+    if(evs[i].a<evs[j].b&&evs[j].a<evs[i].b){bad.add(evs[i].id);bad.add(evs[j].id);}
+  }
+  return bad;
+}
 const ZMIN=0.22,ZMAX=2;
 const mn=s=>{const p=s.split(":");return (+p[0])*60+(+p[1]);};
 const hh=m=>{const h=Math.floor(m/60);return String(h).padStart(2,"0")+":00";};
@@ -153,6 +188,8 @@ function render(day){
   curDay=day;
   const d=DATA[day];
   const {sc:S,cw:CW,nf:NF}=metrics();
+  const stages=MYMODE?ORDER.filter(n=>(d.st[n]||[]).some(ev=>SEL.has(evId(day,n,ev)))):ORDER;
+  const conflicts=MYMODE?overlapsInDay(day):new Set();
   const H=(T1-T0)*S;
   const scEl=document.getElementById("scroller");
   const oldW=scEl.scrollWidth,oldH=scEl.scrollHeight;
@@ -160,10 +197,10 @@ function render(day){
   const ry=oldH>0?(scEl.scrollTop+scEl.clientHeight/2)/oldH:0;
   scEl.innerHTML="";
   const inner=document.createElement("div");
-  inner.style.minWidth=(TW+ORDER.length*CW)+"px";
+  inner.style.minWidth=(TW+stages.length*CW)+"px";
   const hr=document.createElement("div");hr.className="hrow";
   const corner=document.createElement("div");corner.className="hcell corner";corner.style.width=TW+"px";corner.style.height=HD+"px";hr.appendChild(corner);
-  ORDER.forEach(name=>{
+  stages.forEach(name=>{
     const st=STYLE[name];
     const c=document.createElement("div");c.className="hcell";
     c.style.width=CW+"px";c.style.height=HD+"px";
@@ -178,11 +215,14 @@ function render(day){
   const tcin=document.createElement("div");tcin.style.cssText="position:relative;height:"+H+"px;width:100%";
   for(let m=T0;m<=T1;m+=hourStep){const s=document.createElement("span");s.style.top=((m-T0)*S-6)+"px";s.textContent=hh(m);tcin.appendChild(s);}
   tc.appendChild(tcin);br.appendChild(tc);
-  ORDER.forEach(name=>{
+  stages.forEach(name=>{
     const st=STYLE[name];
     const col=document.createElement("div");col.className="col";col.style.width=CW+"px";col.style.height=H+"px";
     for(let m=T0+hourStep;m<T1;m+=hourStep){const ln=document.createElement("div");ln.className="hline";ln.style.top=((m-T0)*S)+"px";col.appendChild(ln);}
     (d.st[name]||[]).forEach(ev=>{
+      const id=evId(day,name,ev);
+      const isSel=SEL.has(id);
+      if(MYMODE&&!isSel)return;
       const a=mn(ev[0]),b=mn(ev[1]),top=(a-T0)*S,h=Math.max((b-a)*S,NF*1.15+3);
       const cxl=ev[3]===1;
       const showTm=h>=30&&ZOOM>=0.75;
@@ -193,7 +233,12 @@ function render(day){
       box.style.padding=(ZOOM>=0.75?"2px 4px":"0px 2px");
       box.style.background=css(st[0]);box.style.color=css(st[1]);box.style.borderLeftColor=css(st[2]);
       box.title=ev[0]+"-"+ev[1]+" "+ev[2]+(cxl?"（出演キャンセル）":"");
-      box.dataset.a=ev[2];box.dataset.s=name;box.dataset.t=ev[0]+"-"+ev[1];
+      box.dataset.a=ev[2];box.dataset.s=name;box.dataset.t=ev[0]+"-"+ev[1];box.dataset.id=id;
+      if(isSel){
+        box.classList.add("sel");
+        const st2=document.createElement("span");st2.className="star";st2.textContent="★";box.appendChild(st2);
+        if(conflicts.has(id)){const w=document.createElement("span");w.className="warn";w.textContent="⚠";box.appendChild(w);box.title+="（時間が重複しています）";}
+      }
       if(showTm){const tm=document.createElement("span");tm.className="tm";tm.textContent=ev[0]+"-"+ev[1];box.appendChild(tm);}
       const nm=document.createElement("span");nm.className="nm";nm.style.fontSize=NF+"px";nm.textContent=ev[2];box.appendChild(nm);
       if(cxl&&h>=24){const cb=document.createElement("span");cb.className="cb";cb.textContent="キャンセル";box.appendChild(cb);}
@@ -202,13 +247,20 @@ function render(day){
     br.appendChild(col);
   });
   inner.appendChild(br);
+  if(MYMODE&&stages.length===0){
+    const em=document.createElement("div");em.className="empty";
+    em.textContent="この日はまだ何も選択されていません。コマをタップして「★マイタイテに追加」してください。";
+    inner.appendChild(em);
+  }
   scEl.appendChild(inner);
   scEl.scrollLeft=rx*scEl.scrollWidth-scEl.clientWidth/2;
   scEl.scrollTop=ry*scEl.scrollHeight-scEl.clientHeight/2;
   document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.d===day));
   const zv=document.getElementById("zval");
   if(zv)zv.textContent=Math.round(ZOOM*100)+"%";
+  updateMyBtn();
 }
+document.getElementById("mybtn").addEventListener("click",()=>{MYMODE=!MYMODE;render(curDay);});
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>render(b.dataset.d)));
 let renderQueued=false;
 function setZoom(z){
@@ -266,7 +318,16 @@ document.getElementById("zfit").addEventListener("click",()=>{
   function cleanName(n){
     return n.replace(/（[^）]*）|\([^)]*\)|【[^】]*】/g,"").replace(/\s+/g," ").trim();
   }
-  function open(a,s,t){
+  let curId=null;
+  function refreshFav(){
+    const b=document.getElementById("sh-fav");
+    const on=curId&&SEL.has(curId);
+    b.textContent=on?"★ 追加済み（タップで解除）":"★ マイタイテに追加";
+    b.classList.toggle("on",on);
+  }
+  function open(a,s,t,id){
+    curId=id||null;
+    refreshFav();
     const q=encodeURIComponent(cleanName(a));
     document.getElementById("sh-name").textContent=a;
     document.getElementById("sh-meta").textContent=s+"｜"+t;
@@ -279,8 +340,19 @@ document.getElementById("zfit").addEventListener("click",()=>{
   document.getElementById("scroller").addEventListener("click",e=>{
     const ev=e.target.closest(".ev");
     if(!ev||!ev.dataset.a)return;
-    if(NOLINK.test(ev.dataset.a))return;
-    open(ev.dataset.a,ev.dataset.s,ev.dataset.t);
+    if(NOLINK.test(ev.dataset.a)){
+      if(ev.dataset.id){
+        if(SEL.has(ev.dataset.id))SEL.delete(ev.dataset.id);else SEL.add(ev.dataset.id);
+        store.save(SEL);render(curDay);
+      }
+      return;
+    }
+    open(ev.dataset.a,ev.dataset.s,ev.dataset.t,ev.dataset.id);
+  });
+  document.getElementById("sh-fav").addEventListener("click",()=>{
+    if(!curId)return;
+    if(SEL.has(curId))SEL.delete(curId);else SEL.add(curId);
+    store.save(SEL);refreshFav();render(curDay);
   });
   bg.addEventListener("click",close);
   document.getElementById("sh-close").addEventListener("click",close);
